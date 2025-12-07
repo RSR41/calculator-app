@@ -21,21 +21,21 @@ class CalculatorPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(calculatorProvider);
     final notifier = ref.read(calculatorProvider.notifier);
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
         child: Column(
           children: [
-            // 디스플레이 영역 (수식 + 결과)
-            Expanded(
-              flex: 35, // 화면의 35% 차지
+            // 디스플레이 영역 (최소 높이 보장)
+            SizedBox(
+              height: screenHeight * 0.3, // 화면의 30%
               child: _buildDisplay(context, state.displayValue, state.currentExpression),
             ),
 
             // 버튼 그리드 영역
             Expanded(
-              flex: 65, // 화면의 65% 차지
               child: _buildButtonGrid(context, notifier),
             ),
           ],
@@ -53,7 +53,7 @@ class CalculatorPage extends ConsumerWidget {
       alignment: Alignment.bottomRight,
       padding: const EdgeInsets.symmetric(
         horizontal: AppConstants.displayHorizontalPadding,
-        vertical: AppConstants.displayBottomPadding,
+        vertical: 16,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -66,7 +66,7 @@ class CalculatorPage extends ConsumerWidget {
               child: Text(
                 expression,
                 style: const TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w300,
                   color: Colors.white70,
                   height: 1.0,
@@ -92,6 +92,8 @@ class CalculatorPage extends ConsumerWidget {
               style: AppTextStyles.getAdaptiveDisplayStyle(
                 text: displayValue,
                 maxWidth: maxWidth,
+                maxFontSize: 72,
+                minFontSize: 32,
               ),
               textAlign: TextAlign.right,
               maxLines: 1,
@@ -105,120 +107,136 @@ class CalculatorPage extends ConsumerWidget {
 
   /// 버튼 그리드 빌드
   Widget _buildButtonGrid(BuildContext context, CalculatorNotifier notifier) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final buttonSize = AppConstants.getButtonSize(screenWidth);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final availableWidth = constraints.maxWidth;
+        
+        // 버튼 크기 계산 (가로 기준)
+        final buttonSize = (availableWidth - (AppConstants.horizontalPadding * 2) - (AppConstants.buttonSpacing * 3)) / 4;
+        
+        // 세로로 5행이 들어갈 수 있는지 확인
+        final neededHeight = (buttonSize * 5) + (AppConstants.buttonSpacing * 4);
+        
+        // 실제 사용할 버튼 크기 (세로가 부족하면 줄임)
+        final actualButtonSize = neededHeight > availableHeight 
+            ? (availableHeight - (AppConstants.buttonSpacing * 4)) / 5
+            : buttonSize;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.horizontalPadding,
-        vertical: AppConstants.buttonGridBottomPadding,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: 
-    [
-          
-          // 1행: AC, ±, %, ÷
-          _buildButtonRow(
-            [
-              _ButtonData('AC', CalculatorButtonType.function, notifier.clear),
-              _ButtonData('±', CalculatorButtonType.function, notifier.toggleSign),
-              _ButtonData('%', CalculatorButtonType.function, notifier.inputPercent),
-              _ButtonData('÷', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.division)),
-              ],
-        buttonSize,
-      ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.horizontalPadding,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // 1행: AC, ±, %, ÷
+              _buildButtonRow(
+                [
+                  _ButtonData('AC', CalculatorButtonType.function, notifier.clear),
+                  _ButtonData('±', CalculatorButtonType.function, notifier.toggleSign),
+                  _ButtonData('%', CalculatorButtonType.function, notifier.inputPercent),
+                  _ButtonData('÷', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.division)),
+                ],
+                actualButtonSize,
+              ),
 
-      // 2행: 7, 8, 9, ×
-      _buildButtonRow(
-        [
-          _ButtonData('7', CalculatorButtonType.number, () => notifier.inputDigit(7)),
-          _ButtonData('8', CalculatorButtonType.number, () => notifier.inputDigit(8)),
-          _ButtonData('9', CalculatorButtonType.number, () => notifier.inputDigit(9)),
-          _ButtonData('×', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.multiplication)),
-        ],
-        buttonSize,
-      ),
+              // 2행: 7, 8, 9, ×
+              _buildButtonRow(
+                [
+                  _ButtonData('7', CalculatorButtonType.number, () => notifier.inputDigit(7)),
+                  _ButtonData('8', CalculatorButtonType.number, () => notifier.inputDigit(8)),
+                  _ButtonData('9', CalculatorButtonType.number, () => notifier.inputDigit(9)),
+                  _ButtonData('×', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.multiplication)),
+                ],
+                actualButtonSize,
+              ),
 
-      // 3행: 4, 5, 6, −
-      _buildButtonRow(
-        [
-          _ButtonData('4', CalculatorButtonType.number, () => notifier.inputDigit(4)),
-          _ButtonData('5', CalculatorButtonType.number, () => notifier.inputDigit(5)),
-          _ButtonData('6', CalculatorButtonType.number, () => notifier.inputDigit(6)),
-          _ButtonData('−', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.subtraction)),
-        ],
-        buttonSize,
-      ),
+              // 3행: 4, 5, 6, −
+              _buildButtonRow(
+                [
+                  _ButtonData('4', CalculatorButtonType.number, () => notifier.inputDigit(4)),
+                  _ButtonData('5', CalculatorButtonType.number, () => notifier.inputDigit(5)),
+                  _ButtonData('6', CalculatorButtonType.number, () => notifier.inputDigit(6)),
+                  _ButtonData('−', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.subtraction)),
+                ],
+                actualButtonSize,
+              ),
 
-      // 4행: 1, 2, 3, +
-      _buildButtonRow(
-        [
-          _ButtonData('1', CalculatorButtonType.number, () => notifier.inputDigit(1)),
-          _ButtonData('2', CalculatorButtonType.number, () => notifier.inputDigit(2)),
-          _ButtonData('3', CalculatorButtonType.number, () => notifier.inputDigit(3)),
-          _ButtonData('+', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.addition)),
-        ],
-        buttonSize,
-      ),
+              // 4행: 1, 2, 3, +
+              _buildButtonRow(
+                [
+                  _ButtonData('1', CalculatorButtonType.number, () => notifier.inputDigit(1)),
+                  _ButtonData('2', CalculatorButtonType.number, () => notifier.inputDigit(2)),
+                  _ButtonData('3', CalculatorButtonType.number, () => notifier.inputDigit(3)),
+                  _ButtonData('+', CalculatorButtonType.operator, () => notifier.inputOperator(Operator.addition)),
+                ],
+                actualButtonSize,
+              ),
 
-      // 5행: 0 (wide), ., =
-      _buildLastRow(notifier, buttonSize),
-    ],
-  ),
-);
+              // 5행: 0 (wide), ., =
+              _buildLastRow(notifier, actualButtonSize, availableWidth),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
+  /// 일반 버튼 행 빌드
+  Widget _buildButtonRow(List<_ButtonData> buttons, double buttonSize) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: buttons.map((button) {
+        return CalculatorButton(
+          text: button.text,
+          type: button.type,
+          onTap: button.onTap,
+          size: buttonSize,
+        );
+      }).toList(),
+    );
+  }
+
+  /// 마지막 행 빌드 (0 버튼이 가로로 넓음)
+  Widget _buildLastRow(CalculatorNotifier notifier, double buttonSize, double screenWidth) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // 0 버튼 (가로 2칸)
+        CalculatorButton(
+          text: '0',
+          type: CalculatorButtonType.number,
+          onTap: () => notifier.inputDigit(0),
+          isWide: true,
+          size: buttonSize,
+        ),
+
+        // . 버튼
+        CalculatorButton(
+          text: '.',
+          type: CalculatorButtonType.number,
+          onTap: notifier.inputDecimal,
+          size: buttonSize,
+        ),
+
+        // = 버튼
+        CalculatorButton(
+          text: '=',
+          type: CalculatorButtonType.operator,
+          onTap: notifier.inputEquals,
+          size: buttonSize,
+        ),
+      ],
+    );
+  }
 }
-/// 일반 버튼 행 빌드
-Widget _buildButtonRow(List<_ButtonData> buttons, double buttonSize) {
-return Row(
-mainAxisAlignment: MainAxisAlignment.spaceBetween,
-children: buttons.map((button) {
-return CalculatorButton(
-text: button.text,
-type: button.type,
-onTap: button.onTap,
-size: buttonSize,
-);
-}).toList(),
-);
-}
-/// 마지막 행 빌드 (0 버튼이 가로로 넓음)
-Widget _buildLastRow(CalculatorNotifier notifier, double buttonSize) {
-return Row(
-mainAxisAlignment: MainAxisAlignment.spaceBetween,
-children: [
-// 0 버튼 (가로 2칸)
-CalculatorButton(
-text: '0',
-type: CalculatorButtonType.number,
-onTap: () => notifier.inputDigit(0),
-isWide: true,
-size: buttonSize,
-),
-// . 버튼
-    CalculatorButton(
-      text: '.',
-      type: CalculatorButtonType.number,
-      onTap: notifier.inputDecimal,
-      size: buttonSize,
-    ),
 
-    // = 버튼
-    CalculatorButton(
-      text: '=',
-      type: CalculatorButtonType.operator,
-      onTap: notifier.inputEquals,
-      size: buttonSize,
-    ),
-  ],
-);
-}
-}
 /// 버튼 데이터를 담는 내부 헬퍼 클래스
 class _ButtonData {
-final String text;
-final CalculatorButtonType type;
-final VoidCallback onTap;
-const _ButtonData(this.text, this.type, this.onTap);
+  final String text;
+  final CalculatorButtonType type;
+  final VoidCallback onTap;
+
+  const _ButtonData(this.text, this.type, this.onTap);
 }
