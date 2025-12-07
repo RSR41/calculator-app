@@ -1,0 +1,24 @@
+name: calculator_app
+description: iOS-style calculator app built with Flutter
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # 상태 관리
+  flutter_riverpod: ^2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Lint 규칙
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
